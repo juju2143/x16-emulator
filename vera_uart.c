@@ -4,7 +4,14 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#ifdef __unix__
+#include <poll.h>
+#endif
 #include "glue.h"
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 #define BITS_PER_BYTE 9 /* 8N1 is 9 bits */
 #define SPEED_RATIO (25.0/MHZ) /* VERA runs at 25 MHz */
@@ -26,6 +33,14 @@ txbusy()
 static bool
 data_available()
 {
+#ifdef __EMSCRIPTEN__
+	return EM_ASM_INT({
+		if(uart_data_available)
+			return uart_data_available();
+		else
+			return false;
+	});
+#endif
 	if (countdown_in > 0) {
 		return false;
 	}
@@ -35,6 +50,12 @@ data_available()
 	if (feof(uart_in_file)) {
 		return false;
 	}
+#ifdef __unix__
+	struct pollfd fds = { .fd = fileno(uart_in_file), .events = POLLIN };
+	if (poll(&fds, 1, 0) != 1) {
+		return false;
+	}
+#endif
 	return true;
 }
 
@@ -44,6 +65,12 @@ cache_next_char()
 	if (uart_in_file) {
 		byte_in = fgetc(uart_in_file);
 	}
+
+#ifdef __EMSCRIPTEN__
+	byte_in = EM_ASM_INT({
+		return uart_getc();
+	});
+#endif
 }
 
 void
@@ -104,7 +131,13 @@ vera_uart_write(uint8_t reg, uint8_t value)
 				//printf("UART write: $%02x\n", value);
 				if (uart_out_file) {
 					fputc(value, uart_out_file);
+					fflush(uart_out_file);
 				}
+#ifdef __EMSCRIPTEN__
+				EM_ASM({
+					if(uart_putc) uart_putc($0);
+				}, value);
+#endif
 				countdown_out = bauddiv * BITS_PER_BYTE;
 			}
 			break;

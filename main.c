@@ -14,6 +14,9 @@
 #ifdef __MINGW32__
 #include <ctype.h>
 #endif
+#ifdef __unix__
+#include <fcntl.h>
+#endif
 #include "cpu/fake6502.h"
 #include "disasm.h"
 #include "memory.h"
@@ -825,6 +828,11 @@ main(int argc, char **argv)
 			printf("Cannot open %s!\n", uart_in_path);
 			exit(1);
 		}
+#ifdef __unix__
+		int fd = fileno(uart_in_file);
+		int flags = fcntl(fd, F_GETFL);
+		fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+#endif
 	}
 
 	if (uart_out_path) {
@@ -833,6 +841,11 @@ main(int argc, char **argv)
 			printf("Cannot open %s!\n", uart_out_path);
 			exit(1);
 		}
+#ifdef __unix__
+		int fd = fileno(uart_out_file);
+		int flags = fcntl(fd, F_GETFL);
+		fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+#endif
 	}
 
 	prg_override_start = -1;

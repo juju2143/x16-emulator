@@ -32,6 +32,7 @@ ifeq ($(CROSS_COMPILE_WINDOWS),1)
 endif
 
 ifdef EMSCRIPTEN
+	CFLAGS+=-std=gnu99
 	LDFLAGS+=--shell-file webassembly/x16emu-template.html --preload-file rom.bin -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=1
 	# To the Javascript runtime exported functions
 	LDFLAGS+=-s EXPORTED_FUNCTIONS='["_j2c_reset", "_j2c_paste", "_j2c_start_audio", _main]' -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
@@ -48,6 +49,7 @@ OBJS += extern/src/ym2151.o
 HEADERS += extern/src/ym2151.h
 CFLAGS += -DWITH_YM2151
 endif
+
 
 ifneq ("$(wildcard ./rom_labels.h)","")
 HEADERS+=rom_labels.h
